@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+
+  app:
+    build:
+      context: app
+      dockerfile: docker/php-fpm/Dockerfile
+      args:
+        PHP_BASEIMAGE_VERSION: ${PHP_BASEIMAGE_VERSION:-7.4.10}
+        PHP_COMPOSER_VERSION: ${PHP_COMPOSER_VERSION:-2.0.11}
+        TZ: ${TZ:-Europe/Moscow}
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    environment:
+      APP_KEY: ${APP_KEY}
+      DB_DATABASE: ${DATABASE_NAME}
+      DB_USERNAME: ${DATABASE_USER}
+      DB_PASSWORD: ${DATABASE_PASSWORD}
+      DB_HOST: mysql
+    depends_on:
+      - mysql
+
+  nginx:
+    build:
+      context: app
+      dockerfile: docker/nginx/Dockerfile
+      args:
+        NGINX_BASEIMAGE_VERSION: ${NGINX_BASEIMAGE_VERSION:-1.19.2}
+        NODE_BASEIMAGE_VERSION: ${NODE_BASEIMAGE_VERSION:-14.10}
+        TZ: ${TZ:-Europe/Moscow}
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    healthcheck:
+      test: "wget --spider 127.0.0.1:80"
+      interval: 10s
+      timeout: 20s
+      retries: 5
+    depends_on:
+      - app
+
+  mysql:
+    image: gitlab-registry.abr.loc/publicteam/docker-common-images/mysql:v${MYSQL_VERSION:-8.0.21}
+    healthcheck:
+      test: "/usr/bin/mysql --user=root --password=\"$${MYSQL_PASSWORD}\" $${DATABASE_NAME} --execute \"SHOW DATABASES;\""
+      interval: 10s
+      timeout: 20s
+      retries: 5
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+    command: ['--sql-mode=', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci', '--default-time-zone=+03:00']

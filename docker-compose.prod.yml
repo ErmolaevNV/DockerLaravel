@@ -1,0 +1,29 @@
+version: "3.5"
+
+services:
+  app:
+    build:
+      cache_from:
+        - ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/app:${BUILD_TAG_CACHE_FROM}
+    image: ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/app:${BUILD_TAG}
+    environment:
+      APP_ENV: "production"
+    volumes:
+      - ./app/certs:/app/certs
+      - ./app/data/logs:/app/storage/logs
+      - ./app/data/framework/sessions:/app/framework/sessions
+
+  nginx:
+    build:
+      cache_from:
+        - ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/nginx:${BUILD_TAG_CACHE_FROM}
+    image: ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/nginx:${BUILD_TAG}
+    environment:
+      - NGINX_HOST=127.0.0.1
+      - NGINX_PORT=80
+    ports:
+      - "8081:80"
+
+  mysql:
+    volumes:
+      - ./mysql/data:/var/lib/mysql
